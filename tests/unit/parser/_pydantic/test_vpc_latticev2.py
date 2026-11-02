@@ -1,4 +1,5 @@
 import pytest
+from pydantic import BaseModel
 
 from aws_lambda_powertools.utilities.parser import ValidationError, envelopes, parse
 from aws_lambda_powertools.utilities.parser.models import VpcLatticeV2Model
@@ -89,3 +90,31 @@ def test_vpc_lattice_v2_event_invalid():
 
     with pytest.raises(ValidationError):
         VpcLatticeV2Model(**raw_event)
+
+
+def test_vpc_lattice_v2_event_with_list_values():
+    # GIVEN an event captured from a VPC Lattice V2 target group, which sends every
+    # header and query string value as a list
+    raw_event = load_event("vpcLatticeV2EventWithQueryString.json")
+
+    # WHEN parsing the event
+    model = VpcLatticeV2Model(**raw_event)
+
+    # THEN the lists are kept as sent
+    assert model.headers == raw_event["headers"]
+    assert model.headers["header1"] == ["value1", "value2"]
+    assert model.query_string_parameters == {"QS1": ["value1", "value2"], "single": ["one"]}
+
+
+def test_vpc_lattice_v2_envelope_with_list_values():
+    # GIVEN an event captured from a VPC Lattice V2 target group
+    raw_event = load_event("vpcLatticeV2EventWithQueryString.json")
+
+    class Hello(BaseModel):
+        hello: str
+
+    # WHEN parsing its body with the envelope
+    parsed_event: Hello = parse(event=raw_event, model=Hello, envelope=envelopes.VpcLatticeV2Envelope)
+
+    # THEN the body is parsed with the model
+    assert parsed_event.hello == "world"

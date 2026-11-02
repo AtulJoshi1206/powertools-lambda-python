@@ -112,18 +112,18 @@ class VpcLatticeV2Model(BaseModel):
         description="The HTTP method used for the request.",
         examples=["GET", "POST", "PUT", "DELETE", "PATCH"],
     )
-    headers: dict[str, str] = Field(
-        description="The request headers as key-value pairs.",
+    headers: dict[str, list[str] | str] = Field(
+        description="The request headers. VPC Lattice sends every header value as a list of strings.",
         examples=[
-            {"host": "test-lambda-service.vpc-lattice-svcs.us-east-2.on.aws", "user-agent": "curl/7.64.1"},
-            {"content-type": "application/json"},
+            {"host": ["test-lambda-service.vpc-lattice-svcs.us-east-2.on.aws"], "user-agent": ["curl/7.64.1"]},
+            {"content-type": ["application/json"]},
         ],
     )
-    query_string_parameters: dict[str, str] | None = Field(
+    query_string_parameters: dict[str, list[str] | str] | None = Field(
         None,
         alias="queryStringParameters",
-        description="The query string parameters as key-value pairs.",
-        examples=[{"order-id": "1"}, {"page": "2", "limit": "10"}],
+        description="The query string parameters. VPC Lattice sends every value as a list of strings.",
+        examples=[{"order-id": ["1"]}, {"page": ["2"], "tags": ["a", "b"]}],
     )
     body: str | type[BaseModel] | None = Field(
         None,
