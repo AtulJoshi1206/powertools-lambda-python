@@ -4737,3 +4737,45 @@ def test_header_model_sequence_field_comma_joined(gw_event_http):
 
     assert result["statusCode"] == 200
     assert json.loads(result["body"]) == {"c": ["US", "PT"]}
+
+
+def test_vpc_lattice_v2_validate_body_with_list_content_type():
+    # GIVEN an event captured from a VPC Lattice V2 target group, which sends every header value as a list
+    raw_event = load_event("vpcLatticeV2EventWithQueryString.json")
+    assert raw_event["headers"]["content-type"] == ["application/json"]
+
+    class Model(BaseModel):
+        hello: str
+
+    app = VPCLatticeV2Resolver(enable_validation=True)
+
+    @app.post("/echo")
+    def handler(body: Annotated[Model, Body()]):
+        return body.model_dump()
+
+    # WHEN validating the JSON body
+    result = app(raw_event, {})
+
+    # THEN the body is read with the content type from the list
+    assert result["statusCode"] == 200
+    assert json.loads(result["body"]) == {"hello": "world"}
+
+
+def test_vpc_lattice_v2_validate_form_body_with_list_content_type():
+    # GIVEN a VPC Lattice V2 event with a form body and its content type as a list
+    raw_event = load_event("vpcLatticeV2EventWithQueryString.json")
+    raw_event["headers"]["content-type"] = ["application/x-www-form-urlencoded"]
+    raw_event["body"] = "name=atul&tags=a&tags=b"
+
+    app = VPCLatticeV2Resolver(enable_validation=True)
+
+    @app.post("/echo")
+    def handler(name: Annotated[str, Form()], tags: Annotated[list[str], Form()]):
+        return {"name": name, "tags": tags}
+
+    # WHEN validating the form body
+    result = app(raw_event, {})
+
+    # THEN the form fields are parsed and validated
+    assert result["statusCode"] == 200
+    assert json.loads(result["body"]) == {"name": "atul", "tags": ["a", "b"]}
